@@ -22,20 +22,3 @@ def send_otp_email(receiver_email, otp):
         server.starttls()
         server.login(sender_email, sender_password)
         server.sendmail(sender_email, receiver_email, msg.as_string())
-
-if __name__ == "__main__":
-    # Find location of users.json relative to this script
-    DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-    USERS_FILE = os.path.join(DATA_DIR, "users.json")
-    # Load users
-    with open(USERS_FILE, "r") as f:
-        users = json.load(f)
-    # Send OTP to every user with an email
-    for user in users:
-        receiver_email = user.get("email")
-        if receiver_email:
-            otp_code = generate_otp()
-            send_otp_email(receiver_email, otp_code)
-            print(f"OTP {otp_code} sent to {receiver_email} for user {user.get('name','(unknown)')}")
-        else:
-            print(f"User {user.get('id','?')} has no email; skipping.")
