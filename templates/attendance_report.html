@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Report | Admin Dashboard</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-blue-600 text-white py-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center px-6">
+            <img src="/static/images/logo.jpeg" alt="logo" class="h-20 w-20 rounded-full object-cover "/>
+            <h1 class="text-xl font-bold">Admin Dashboard</h1>
+            <a href="/admin" class="bg-white text-blue-600 px-3 py-2 rounded-lg font-semibold hover:bg-gray-200">
+  ← Back to Admin Dashboard
+</a>
+            <a href="/logout" class="bg-white text-blue-600 px-3 py-2 rounded-lg font-semibold hover:bg-gray-200">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto mt-8 p-6 bg-white shadow-lg rounded-lg flex-grow">
+        <h2 class="text-2xl font-bold text-center mb-6">📊 Staff Attendance Report</h2>
+
+        <!-- Filter Section -->
+  <form action="/attendance_report" method="get" class="flex items-center gap-3">
+    <input type="date" name="date" class="border p-2 rounded-lg" />
+    <input type="text" name="staff_id" placeholder="Search by Staff ID" class="border p-2 rounded-lg" />
+    
+    <label class="flex items-center gap-1">
+      <input type="checkbox" name="in_time_marked" value="true" />
+      Has In Time
+    </label>
+    
+    <label class="flex items-center gap-1">
+      <input type="checkbox" name="out_time_marked" value="true" />
+      Has Out Time
+    </label>
+    
+    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Filter</button>
+</form>
+
+        <div class="mt-4 text-right">
+            <button onclick="exportToCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">⏬ Export CSV</button>
+
+        <!-- Attendance Table -->
+        <div class="overflow-x-auto">
+            <table id="attendance_table" class="min-w-full border border-gray-300 text-center">
+                <thead class="bg-blue-600 text-white">
+                    <tr>
+                        <th class="p-3 border">Staff ID</th>
+                        <th class="p-3 border">Date</th>
+                        <th class="p-3 border">In Time</th>
+                        <th class="p-3 border">Out Time</th>
+                        <th class="p-3 border">GPS Latitude</th>
+                        <th class="p-3 border">GPS Longitude</th>
+                        <th class="p-3 border">OTP Verified</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if attendance_data %}
+                        {% for record in attendance_data %}
+                            <tr class="hover:bg-gray-100">
+                                <td class="p-3 border">{{ record.staff_id }}</td>
+                                <td class="p-3 border">{{ record.date }}</td>
+                                <td class="p-3 border">{{ record.in_time }}</td>
+                                <td class="p-3 border">{{ record.out_time }}</td>
+                                <td class="p-3 border">{{ record.gps_location.lat }}</td>
+                                <td class="p-3 border">{{ record.gps_location.lng }}</td>
+                                <td class="p-3 border">
+                                    {% if record.otp_verified %}
+                                        ✅
+                                    {% else %}
+                                        ❌
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="p-4 text-gray-500">No attendance data found.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="mt-8">
+            <h3 class="text-xl font-semibold mb-4 text-center">Attendance Summary (By Staff)</h3>
+            <canvas id="attendanceChart" height="100"></canvas>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-4 mt-8 text-center">
+        © {{ current_year }} Staff Attendance System | Admin Panel
+    </footer>
+
+    <!-- CSV Export Script -->
+    <script>
+        function exportToCSV() {
+            const table = document.getElementById('attendance_table');
+            let csv = 'Staff ID,Date,In Time,Out Time,GPS Lat,GPS Lng,OTP Verified\n';
+            for (let i = 1; i < table.rows.length; i++) { // start from row 1 to skip headers
+                const cols = table.rows[i].querySelectorAll('td');
+                let row = [];
+                cols.forEach(col => row.push(col.innerText));
+                csv += row.join(',') + '\n';
+            }
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'attendance_report.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+
+    <!-- Chart Script -->
+  <script>
+  const attendanceData = JSON.parse('{{ attendance_data|tojson|safe }}');
+
+  const attendanceCounts = {};
+
+  attendanceData.forEach(record => {
+    const staffId = record.staff_id;
+    attendanceCounts[staffId] = (attendanceCounts[staffId] || 0) + 1;
+  });
+
+  const labels = Object.keys(attendanceCounts);
+  const data = Object.values(attendanceCounts);
+
+  const ctx = document.getElementById('attendanceChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Attendance Count',
+        data: data,
+        backgroundColor: 'rgba(37, 99, 235, 0.6)',
+        borderColor: 'rgba(37, 99, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+</script>
+
+</body>
+</html>

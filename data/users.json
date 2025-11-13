@@ -1,0 +1,25 @@
+[
+  {
+    "id": "A001",
+    "name": "Admin",
+    "role": "admin",
+    "password": "admin123",
+    "email": "admin@example.com"
+  },
+  {
+    "id": "AIDS01",
+    "name": "Ranjith devaraj",
+    "phone": "+918428254205",
+    "role": "staff",
+    "password": "Ranjith123",
+    "email": "ranjithdevaraj45@gmail.com"
+  },
+  {
+    "id": "AIDS02",
+    "name": "Vishnu",
+    "phone": "+918428254205",
+    "email": "ranjithdevaraj2@gmail.com",
+    "role": "staff",
+    "password": "Prakesh123"
+  }
+]
